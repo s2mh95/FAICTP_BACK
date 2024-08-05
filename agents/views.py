@@ -7,7 +7,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView
-from .models import Agent, Mission
+from .models import Agent, Mission, AgentImage
 from .serializers import AgentSerializer, MissionSerializer
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.exceptions import ValidationError
@@ -27,13 +27,28 @@ class AgentViewSet(viewsets.ModelViewSet):
     parser_classes = (MultiPartParser, FormParser)
     pagination_class = AgentPagination
 
+    def perform_create(self, serializer):
+        agent = serializer.save()
+        images = self.request.FILES.getlist('images')
+        if not images:
+            print("No images received.")
+        else:
+            print(f"Images received: {images}")
+        for image in images:
+            AgentImage.objects.create(agent=agent, image=image)
+
+    def perform_update(self, serializer):
+        agent = serializer.save()
+        images = self.request.FILES.getlist('images')
+        print(f"Updating with images: {images}")
+        for image in images:
+            AgentImage.objects.create(agent=agent, image=image)
+
 class MissionPagination(PageNumberPagination):
     page_size = 10 
     page_size_query_param = 'page_size'
     max_page_size = 100
-
-from rest_framework.exceptions import ValidationError
-
+    
 class MissionViewSet(viewsets.ModelViewSet):
     queryset = Mission.objects.all()
     serializer_class = MissionSerializer
@@ -70,7 +85,7 @@ class CustomAuthToken(ObtainAuthToken):
         user = serializer.validated_data['user']
         token, created = Token.objects.get_or_create(user=user)
 
-        is_agent = Agent.objects.filter(personal_id=user.username).exists()
+        is_agent = Agent.objects.filter(social_security_number=user.username).exists()
         
         return Response({
             'token': token.key,
@@ -97,5 +112,5 @@ class AgentMissionsView(ListAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        agent = Agent.objects.get(personal_id=user.username)
+        agent = Agent.objects.get(social_security_number=user.username)
         return Mission.objects.filter(assigned_agent=agent)

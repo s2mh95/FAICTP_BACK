@@ -1,7 +1,14 @@
 from rest_framework import serializers
-from .models import Agent, Mission
+from .models import Agent, Mission, AgentImage
+
+class AgentImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AgentImage
+        fields = '__all__'
 
 class AgentSerializer(serializers.ModelSerializer):
+    images = AgentImageSerializer(many=True, read_only=True)
+    
     class Meta:
         model = Agent
         fields = '__all__'

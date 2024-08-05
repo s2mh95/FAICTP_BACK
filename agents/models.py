@@ -1,7 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 
 class Agent(models.Model):
@@ -16,12 +16,22 @@ class Agent(models.Model):
     phone_number_2 = models.CharField(max_length=15, blank=True, null=True)
     phone_number_3 = models.CharField(max_length=15, blank=True, null=True)
     profile_picture = models.ImageField(upload_to='profile_pictures/', default='default_images/PL.jpg')
-    birth_certificate_image = models.ImageField(upload_to='birth_certificates/', default='default_images/PL.jpg')
-    social_security_card_image = models.ImageField(upload_to='ssn_cards/', default='default_images/PL.jpg')
     agent_level = models.CharField(max_length=20 , default=" ", choices=[('اول', 'اول'), ('دوم', 'دوم'), ('رزرو', 'رزرو')])
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
+
+class AgentImage(models.Model):
+    agent = models.ForeignKey(Agent, related_name='images', on_delete=models.CASCADE)
+    image = models.ImageField(upload_to='agent_images/')
+
+@receiver(post_delete, sender=Agent)
+def delete_user_for_agent(sender, instance, **kwargs):
+    try:
+        user = User.objects.get(username=instance.social_security_number)
+        user.delete()
+    except User.DoesNotExist:
+        pass
 
 @receiver(post_save, sender=Agent)
 def create_user_for_agent(sender, instance, created, **kwargs):
