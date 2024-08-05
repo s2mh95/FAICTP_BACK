@@ -24,6 +24,9 @@ class Agent(models.Model):
 class AgentImage(models.Model):
     agent = models.ForeignKey(Agent, related_name='images', on_delete=models.CASCADE)
     image = models.ImageField(upload_to='agent_images/')
+    
+    def __str__(self):
+        return f"{self.agent.social_security_number}"
 
 @receiver(post_delete, sender=Agent)
 def delete_user_for_agent(sender, instance, **kwargs):

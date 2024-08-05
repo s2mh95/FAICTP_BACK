@@ -1,3 +1,5 @@
+from .models import Agent, Mission, AgentImage, User
+from .serializers import AgentSerializer, MissionSerializer
 from rest_framework import viewsets
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated
@@ -7,10 +9,8 @@ from rest_framework.authtoken.models import Token
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView
-from .models import Agent, Mission, AgentImage
-from .serializers import AgentSerializer, MissionSerializer
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.exceptions import ValidationError
+from rest_framework.decorators import api_view, permission_classes
 import logging
 
 logger = logging.getLogger(__name__)
@@ -114,3 +114,20 @@ class AgentMissionsView(ListAPIView):
         user = self.request.user
         agent = Agent.objects.get(social_security_number=user.username)
         return Mission.objects.filter(assigned_agent=agent)
+    
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_password(request):
+    user = request.user
+    data = request.data
+
+    old_password = data.get("old_password")
+    new_password = data.get("new_password")
+
+    if not user.check_password(old_password):
+        return Response({"error": "Old password is incorrect."}, status=status.HTTP_400_BAD_REQUEST)
+
+    user.set_password(new_password)
+    user.save()
+
+    return Response({"success": "Password changed successfully."}, status=status.HTTP_200_OK)
